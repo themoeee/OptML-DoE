@@ -29,6 +29,8 @@ def getConfig():
     return config
 
 def train_absorbed_energy_gp(x_train, y_train_ae):
+    """This function trains a GP model for the absorbed energy for later Bayesian optimization"""
+
     print("Training GP for absorbed energy")
     kernel = 1 * RBF(length_scale=1.0, length_scale_bounds=(1e-2, 1e2))
     gp_absorbed_energy = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=9, normalize_y=True)
@@ -37,6 +39,8 @@ def train_absorbed_energy_gp(x_train, y_train_ae):
     return gp_absorbed_energy
 
 def train_max_stress_gp(x_train, y_train_ms):
+    """This function trains a GP model for the maximum stress for later Bayesian optimization"""
+
     print("Training GP for maximum stress")
     kernel = 1 * RBF(length_scale=1.0, length_scale_bounds=(1e-2, 1e2))
     gp_max_stress = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=9, normalize_y=True)
@@ -45,13 +49,15 @@ def train_max_stress_gp(x_train, y_train_ms):
     return gp_max_stress
 
 def calculate_edge_dist(sampleLst, r1, r2, a, b):
-
-    #This code here is useless now with v2, as the coordinate system changed. As I can fulfill the edge distance constraints of the circles 
-    #with the config already though I will just comment out this code snippet here
+    """This function is used to calculate the edge distance of all 3 object and check if it is okay. 
+     Returns True if edge distance constraint is fulfilled, False otherwise"""
     
     half_square_length = 30
     square_length = 60
     clearance = 2
+
+    #This code here is useless now with v2, as the coordinate system changed. As I can fulfill the edge distance constraints of the circles 
+    #with the config already though I will just comment out this code snippet here
 
     #Circle 1
     # x1 = sampleLst['x1']
@@ -65,13 +71,11 @@ def calculate_edge_dist(sampleLst, r1, r2, a, b):
     # d_circle2 = half_square_length - ( max( abs(x2), abs(y2)) + r2)
     #print("Distance Circle 2 to edge: ", d_circle2)
 
-
     #Oval Shape 
     x3 =  sampleLst['x3']           
     y3 =  sampleLst['y3']
     angle = sampleLst["angle"]
     angle = math.radians(angle)
-    
   
     x_oval_1 = x3 + math.cos(angle) * a + b
     x_oval_2 = x3 - math.cos(angle) * a - b
@@ -93,7 +97,6 @@ def calculate_edge_dist(sampleLst, r1, r2, a, b):
     d_oval_min = min( x_oval_min, y_oval_min)
     #print("Distance oval to edge: ", d_oval)
 
-
     #print("Edge distance summary: \n", )
     #print(f"Circle 1  {x1, y1}:  ", d_circle1, d_circle1>clearance)
     #print(f"Circle 2  {x2, y2}:  ", d_circle2, d_circle2>clearance)
@@ -102,7 +105,8 @@ def calculate_edge_dist(sampleLst, r1, r2, a, b):
     return (d_oval_max>clearance) & (d_oval_min>clearance) #(d_circle1 > clearance) & (d_circle2>clearance) & (d_oval>clearance)
 
 def calculate_circle_oval_dist(x_c, y_c, r_c, x_o, y_o, angle, a, b):
-   
+   #This function calculates the distance between a circle and the oval shape. Used as a helper later in calculate_object_dist()"""
+
     theta = -angle
 
     # circle center relative to oval center
@@ -130,7 +134,7 @@ def calculate_circle_oval_dist(x_c, y_c, r_c, x_o, y_o, angle, a, b):
     return center_dist - b - r_c
 
 def calculate_object_dist(sampleLst, r1, r2, a, b):
-
+    #This function calculates the distance between the two circles and the oval shape. It returns True if all distances are greater than a specified cutout distance, False otherwise.
     cutout_dist = 1
 
     x1 = sampleLst['x1']
@@ -164,7 +168,6 @@ def calculate_object_dist(sampleLst, r1, r2, a, b):
     # d_oval_c1_21 = abs(np.dot(v1_1,n)) - r1
     # d_oval_c1_22 = abs(np.dot(v1_2,n)) - r1
 
-
     #DEBUG
     #print("d_oval_c1_11", d_oval_c1_11)
     #print("d_oval_c1_12", d_oval_c1_12)
@@ -178,7 +181,6 @@ def calculate_object_dist(sampleLst, r1, r2, a, b):
     #d_oval_c2_11 = math.sqrt((x2-xstar1)**2+(y2-ystar1)**2) - r2 - b            # distance to the half-circle left
     #d_oval_c2_12 = math.sqrt((x2-xstar2)**2+(y2-ystar2)**2) - r2 - b            # distance to the half-circle right
     
-
     # n = np.array([math.sin(angle), math.cos(angle)])
     # v2_1 = np.array([(x2-xG1), (y2-yG1)])
     # v2_2 = np.array([(x2-xG2), (y2-yG2)])
@@ -378,13 +380,13 @@ def main():
     r1 = 9
     r2 = 6
     a = 25/2
-    b = 7.5 #radius
+    b = 7.5 #radius of the oval shape
 
     'CONSTRAINT'
     max_stress_constraint = 275.0
 
     # generates latin hypercube samples of the parameters
-    nSamples = 45000
+    nSamples = 45
 
     #print("Getting config....")
     config = getConfig()
@@ -470,7 +472,7 @@ def main():
     # whats's missing: after training GPs for max stress and absorbed energy, we need a sampling strategy = aquisition function 
     # this should then be used to sample new geometries, make on-line update of the surrogate model until we find the optimal geometry.
 
-    #Implementing GP training from file in new python file gp_predict.py
+    #Implementing GP training from file in new python file gp_predict.py. This file is also used for all the remaining tasks
     
 
 if __name__ == "__main__":
