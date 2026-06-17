@@ -456,12 +456,14 @@ def main():
     print('maximum stress value:', max_stress_sample)
     print(f"This was recorded for sample {index_best_sample} with the following parameters {samples[index_best_sample]}")
 
+    # Save best result to results.csv file with added datestamp
     csv_path = Path("results.csv")
     new_result = samples[index_best_sample]
     new_result["date"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     pd.DataFrame([new_result]).to_csv(csv_path,mode="a",header=not csv_path.exists(),index=False)
 
+    # Save all results to all_results.csv file with added datestamp
     csv_path_all_results = Path("all_results.csv")
 
     for result in results:

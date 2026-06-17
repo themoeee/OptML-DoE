@@ -14,6 +14,8 @@ import heapq
 import itertools
 
 def train_absorbed_energy_gp(x_train, y_train_ae):
+    """This function trains a GP model for the absorbed energy for later Bayesian optimization"""
+
     print(f"Training GP for absorbed energy on {len(x_train)} samples")
    
     kernel = (
@@ -31,9 +33,10 @@ def train_absorbed_energy_gp(x_train, y_train_ae):
     return gp_absorbed_energy
 
 def train_max_stress_gp(x_train, y_train_ms):
+    """This function trains a GP model for the maximum stress for later Bayesian optimization"""
+
     print(f"Training GP for maximum stress on {len(y_train_ms)} samples")
 
-    
     kernel = (
         ConstantKernel(1.0, (1e-2, 1e3))
         * Matern(
@@ -50,13 +53,14 @@ def train_max_stress_gp(x_train, y_train_ms):
     return gp_max_stress
 
 def predict(gp_energy, gp_stress, x_test):
+    """This function predicts the absorbed energy and maximum stress as well as their uncertainties for a given test point using the learned GPs"""
     #print("Predicting with GPs")
     y_pred_energy, sigma_energy = gp_energy.predict(x_test, return_std=True)
     y_pred_stress, sigma_stress = gp_stress.predict(x_test, return_std=True)
     return y_pred_energy, sigma_energy, y_pred_stress, sigma_stress
 
 def calculate_score(gp_energy, gp_stress, x):
-    # This uses a combination of the stress and absorbed energy surrogate model to calculate a new score, which we will ues for Bayesian Optimization
+    """This function calculates a new score using a combination of the stress and absorbed energy surrogate models for Bayesian Optimization"""
 
     MAX_STRESS = 275
 
@@ -214,7 +218,7 @@ def main():
     # The idea is now to use both of these models in combination to sample new interesting points and do bayesian optimization (zero'th order)
     # I will therefore calculate a new "score" as a objective goal, which uses Lagrangian penalty method to combine these two models and also account for uncertainty
 
-    n_test_points = 50
+    n_test_points = 5
     best_gp_candidates = [{"sample": None, "score": float('-inf')} for _ in range(n_test_points)]
     top_k = []
     counter = itertools.count()  #used as tiebreaker in case of identical score values
