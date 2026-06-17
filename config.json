@@ -1,0 +1,18 @@
+{
+    "_comment1": 
+    "make sure the params exist in the Spreadsheet of the optml_master.FCStd", 
+    "_comment2": 
+    "TODO: Change these bounds to sensible intervals for your chosen strategy", 
+    "dsParameterBounds": {
+        "x1": [11, 49], 
+        "y1": [11, 19],
+        "x2": [8, 52], 
+        "y2": [8, 52],
+        "x3": [9.5, 51.5], 
+        "y3": [9.5, 51.5],
+        "angle": [1,80]
+    }
+
+}
+
+    
