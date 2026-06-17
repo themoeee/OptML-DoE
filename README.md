@@ -1,138 +1,172 @@
-# ML Optimization Engineering Project
+# Constrained FEM Surrogate Optimization with Gaussian Processes
 
-## Overview
+This repository contains a constrained geometry optimization workflow for an engineering design problem. The goal is to optimize the placement of three cutouts in a 60 × 60 mm aluminum back plate to maximize absorbed deformation energy while respecting a maximum stress constraint.
 
-This project implements a **Design of Experiments (DoE) and Gaussian Process-based optimization** framework to solve costly engineering design problems. The goal is to find optimal part design parameters under constraints while minimizing expensive FEM (Finite Element Method) simulations.
+The expensive objective evaluation is a FreeCAD/CalculiX FEM simulation. To reduce the number of required simulations, the workflow combines Design of Experiments (DoE), geometry constraint filtering, Gaussian Process surrogate models, and acquisition-based candidate selection.
 
-## Problem Statement
+## Problem
 
-Finding optimal designs through brute-force FEM simulation is computationally expensive. This project applies machine learning techniques to:
-- Use Design of Experiments to intelligently select sample designs
-- Train Gaussian Process regressors as surrogate models for FEM results
-- Optimize design parameters efficiently without running every possible configuration
+The design contains seven optimization variables:
 
-## Project Structure
+* `x1`, `y1`: center position of circular cutout 1
+* `x2`, `y2`: center position of circular cutout 2
+* `x3`, `y3`: center position of the elongated cutout
+* `angle`: rotation angle of the elongated cutout
 
-### Core Scripts
+The optimization target is:
 
-- **main.py** — Main optimization engine. Orchestrates the DoE sampling strategy, FEM simulations, GP model training, and parameter optimization.
-- **gp_predict.py** — Advanced Gaussian Process models for predicting absorbed energy and maximum stress. Includes expected improvement (EI) acquisition functions.
-- **full_journal_fc.py** — FreeCAD journal script that interfaces with the CAD model (optml_master.FCStd). Runs FEM simulations for parameter evaluation.
-- **csvtoexcel.py** — Utility to convert CSV results to Excel format for reporting.
-- **visualize_sample_gui.py** — GUI visualization tool for sampling strategy and results.
+* maximize absorbed plastic deformation energy
+* keep maximum stress below 275 MPa
+* satisfy all geometric constraints, especially edge clearance and minimum distance between cutouts
 
-### Configuration & Data
+## Method
 
-- **config.json** — Parameter bounds for design variables (x1, y1, x2, y2, x3, y3, angle).
-- **debug_config.json** — Alternative configuration for debugging.
-- **optml_master.FCStd** — FreeCAD part file with parameterized design. Contains the Spreadsheet object for parameter updates.
-- **all_results.csv / all_results_clean.xlsx** — Complete simulation results dataset.
-- **results.csv / results_clean.xlsx** — Filtered/processed results.
+The implemented workflow is:
+
+1. Generate candidate geometries using Latin Hypercube Sampling.
+2. Filter invalid geometries before running FEM simulations.
+3. Run valid candidates through the FreeCAD/CalculiX FEM model.
+4. Store absorbed energy and maximum stress values in CSV files.
+5. Train two Gaussian Process surrogate models:
+
+   * one model for absorbed energy
+   * one model for maximum stress
+6. Score a large pool of new valid candidate geometries using an acquisition function.
+7. Evaluate only the best surrogate-selected candidates with the expensive FEM model.
+8. Append the new results to the dataset for further surrogate updates.
+
+The acquisition score uses an Upper Confidence Bound (UCB) term for absorbed energy and a soft penalty for violating the stress constraint:
+
+```text
+score = (mu_energy + beta * sigma_energy) * penalty(stress)
+```
+
+This favors candidates with high predicted energy while still accounting for model uncertainty and the 275 MPa stress limit.
+
+## Repository Structure
+
+```text
+.
+├── main.py                    # Initial DoE sampling, geometry filtering, FEM runs, result logging
+├── gp_predict.py              # GP training, surrogate-based candidate scoring, FEM validation
+├── full_journal_fc.py         # FreeCAD journal script for geometry update and FEM execution
+├── csvtoexcel.py              # Converts result CSV files to formatted Excel files
+├── config.json                # Parameter bounds for the seven design variables
+├── optml_master.FCStd         # Parameterized FreeCAD model
+├── all_results.csv            # Full simulation dataset, created/extended during runs
+├── results.csv                # Best result per run, created/extended during runs
+├── all_results_clean.xlsx     # Optional formatted Excel export
+├── results_clean.xlsx         # Optional formatted Excel export
+└── mlopt_engineering_project_V2.pdf
+```
 
 ## Requirements
 
-### Python Packages
+Python 3.12 was used for this project.
 
-Install with:
+Required Python packages:
+
+```text
+numpy
+scipy
+pandas
+matplotlib
+scikit-learn
+openpyxl
+```
+
+Install them with:
+
 ```bash
 pip install -r requirements.txt
 ```
 
-### External Dependencies
+External dependency:
 
-- **FreeCAD** (manual installation required) — Used for CAD modeling and FEM simulations.
-  - Must be installed and accessible from the command line
-  - The project runs FreeCAD as a subprocess to execute journal scripts
-  - Visit [FreeCAD Official Site](https://www.freecadweb.org/) for installation
+* FreeCAD 1.0.x with CalculiX/FEM support
+* On Windows, the default executable path used in the scripts is:
 
-- **Python 3.12+**
+```text
+C:/Program Files/FreeCAD 1.0/bin/FreeCADCmd.exe
+```
+
+If FreeCAD is installed elsewhere, update `freeCADExecPath` in `main.py` and `gp_predict.py`.
 
 ## Usage
 
-### 1. Setup
+### 1. Configure parameter bounds
 
-1. Install Python dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+Edit `config.json`:
 
-2. Ensure FreeCAD is installed and accessible.
+```json
+{
+  "dsParameterBounds": {
+    "x1": [11, 49],
+    "y1": [11, 19],
+    "x2": [8, 52],
+    "y2": [8, 52],
+    "x3": [9.5, 51.5],
+    "y3": [9.5, 51.5],
+    "angle": [1, 80]
+  }
+}
+```
 
-3. Update configuration parameters in `config.json` to match your design variables and bounds:
-   ```json
-   {
-       "dsParameterBounds": {
-           "param_name": [lower_bound, upper_bound],
-           ...
-       }
-   }
-   ```
+The parameter names must match the spreadsheet entries in `optml_master.FCStd`.
 
-### 2. Run Optimization
+### 2. Generate initial FEM data
 
-Execute the main optimization loop:
+Run:
+
 ```bash
 python main.py
 ```
 
-This will:
-- Load design parameter bounds from config.json
-- Generate initial DoE samples (Latin Hypercube Sampling)
-- Run FEM simulations via FreeCAD for each sample
-- Collect absorbed energy and maximum stress results
-- Train Gaussian Process regressors on results
-- Iteratively select new samples using expected improvement
-- Output results to CSV/Excel files
+This generates Latin Hypercube samples, filters invalid geometries, runs the FEM simulation for valid samples, and appends the results to:
 
-### 3. Visualization & Analysis
+* `all_results.csv`
+* `results.csv`
 
-View sampling strategy and results:
+### 3. Run surrogate-based optimization
+
+After `all_results.csv` contains initial FEM data, run:
+
 ```bash
-python visualize_sample_gui.py
+python gp_predict.py
 ```
 
-Convert results to Excel format:
+This trains Gaussian Process models on the existing data, samples a large candidate pool, ranks valid candidates by surrogate score, runs FEM simulations for the best candidates, and appends the new results to the CSV files.
+
+### 4. Convert results to Excel
+
+Run:
+
 ```bash
 python csvtoexcel.py
 ```
 
-## Technical Approach
-
-### Design of Experiments (DoE)
-- **Latin Hypercube Sampling (LHS)** — Initial design generation for uniform coverage of design space
-- **Expected Improvement (EI)** — Acquisition function for sequential sampling
-
-### Gaussian Process Models
-- Separate models for absorbed energy and maximum stress
-- RBF (Radial Basis Function) kernels with optimized hyperparameters
-- Kernel composition: `ConstantKernel * RBF + WhiteKernel` for robust predictions
-- Separate length scales per design variable
-
-### Constraints
-- Design variables must satisfy bounds defined in config.json
-- Edge distance constraints can be configured via parameter bounds
+This creates formatted Excel files from the CSV result files.
 
 ## Output Files
 
-- **all_results.csv** — Complete simulation dataset with all samples
-- **all_results_clean.xlsx** — Cleaned and formatted results in Excel
-- **results.csv / results_clean.xlsx** — Subset of results for reporting
-- **Optimization Project Changelog.txt** — Project version history and notes
+* `all_results.csv`: all evaluated FEM samples
+* `results.csv`: best evaluated sample per optimization run
+* `all_results_clean.xlsx`: formatted full dataset
+* `results_clean.xlsx`: formatted best-results dataset
 
-## Project Evolution
+Each result row contains the seven design variables plus:
 
-- **V1** — Initial implementation with basic coordinate constraints
-- **V2** — Improved coordinate system and constraint handling; separation of absorbed energy and stress models
-
-See `mlopt_engineering_project_V2.pdf` for detailed project specification and theoretical background.
+```text
+energy_objective, stress_constraint, date
+```
 
 ## Notes
 
-- Ensure parameter names in config.json match the Spreadsheet object variables in optml_master.FCStd
-- Constraint satisfaction is validated before running costly FEM simulations
-- Results are cached to avoid duplicate simulations
-- Edge distance constraints are handled through parameter bounds configuration
+* `gp_predict.py` requires an existing `all_results.csv` file.
+* Invalid geometries are filtered before starting FreeCAD to avoid unnecessary FEM runs.
+* The FreeCAD script updates the spreadsheet parameters, recomputes the model, runs CalculiX, and extracts absorbed energy and maximum stress from the FEM result.
+* The FreeCAD model and FEM base setup were provided as part of the course project; the optimization workflow, constraint handling, surrogate modeling, and result-processing code were developed for this solution.
 
-## License & Attribution
+## Course Context
 
-This project was created as an educational exercise in Design of Experiments and machine learning-based optimization.
+Project for the course "Optimization and Machine Learning" at ETH Zurich.

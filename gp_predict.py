@@ -218,7 +218,7 @@ def main():
     # The idea is now to use both of these models in combination to sample new interesting points and do bayesian optimization (zero'th order)
     # I will therefore calculate a new "score" as a objective goal, which uses Lagrangian penalty method to combine these two models and also account for uncertainty
 
-    n_test_points = 5
+    n_test_points = 15
     best_gp_candidates = [{"sample": None, "score": float('-inf')} for _ in range(n_test_points)]
     top_k = []
     counter = itertools.count()  #used as tiebreaker in case of identical score values
