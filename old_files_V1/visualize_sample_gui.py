@@ -8,9 +8,12 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.patches import Circle, Rectangle, Ellipse
 
 
+
 # Geometry definition
 PLATE_SIZE = 60.0
 HALF = PLATE_SIZE / 2.0
+MIN_COORD = 0.0
+MAX_COORD = PLATE_SIZE
 
 r1 = 9.0
 r2 = 6.0
@@ -49,9 +52,9 @@ def quick_checks(sample):
     The circle-slot checks are conservative/simplified because the plotted oval is simplified too.
     """
     x1, y1 = sample["x1"], sample["y1"]
-    x2, y2 = -sample["x2"], sample["y2"]
-    x3, y3 = -sample["x3"], -sample["y3"]
-    angle_deg = -sample["angle"]
+    x2, y2 = sample["x2"], sample["y2"]
+    x3, y3 = sample["x3"], sample["y3"]
+    angle_deg = sample["angle"]
 
     edge_margin = 2.0
     clearance = 1.0
@@ -59,12 +62,12 @@ def quick_checks(sample):
     messages = []
 
     # Circle-edge checks
-    if not (-HALF + edge_margin + r1 <= x1 <= HALF - edge_margin - r1 and
-            -HALF + edge_margin + r1 <= y1 <= HALF - edge_margin - r1):
+        if not (MIN_COORD + edge_margin + r1 <= x1 <= MAX_COORD - edge_margin - r1 and
+            MIN_COORD + edge_margin + r1 <= y1 <= MAX_COORD - edge_margin - r1):
         messages.append("circle 1 too close to edge")
 
-    if not (-HALF + edge_margin + r2 <= x2 <= HALF - edge_margin - r2 and
-            -HALF + edge_margin + r2 <= y2 <= HALF - edge_margin - r2):
+        if not (MIN_COORD + edge_margin + r2 <= x2 <= MAX_COORD - edge_margin - r2 and
+            MIN_COORD + edge_margin + r2 <= y2 <= MAX_COORD - edge_margin - r2):
         messages.append("circle 2 too close to edge")
 
     # Rotated ellipse/oval bounding box against plate edge
@@ -72,8 +75,8 @@ def quick_checks(sample):
     extent_x = abs(a * math.cos(theta)) + abs(b * math.sin(theta))
     extent_y = abs(a * math.sin(theta)) + abs(b * math.cos(theta))
 
-    if not (-HALF + edge_margin + extent_x <= x3 <= HALF - edge_margin - extent_x and
-            -HALF + edge_margin + extent_y <= y3 <= HALF - edge_margin - extent_y):
+        if not (MIN_COORD + edge_margin + extent_x <= x3 <= MAX_COORD - edge_margin - extent_x and
+            MIN_COORD + edge_margin + extent_y <= y3 <= MAX_COORD - edge_margin - extent_y):
         messages.append("oval/slot too close to edge")
 
     # Circle-circle overlap
@@ -87,18 +90,18 @@ def quick_checks(sample):
 def plot_sample(sample, ax):
     ax.clear()
 
-    x1, y1 = sample["x1"], sample["y1"] 
-    x2, y2 = -sample["x2"], sample["y2"] 
-    x3, y3 = -sample["x3"], -sample["y3"]
-    angle = -sample["angle"]
+    x1, y1 = sample["x1"], sample["y1"]
+    x2, y2 = sample["x2"], sample["y2"]
+    x3, y3 = sample["x3"], sample["y3"]
+    angle = sample["angle"]
 
     # Plate
-    plate = Rectangle((-HALF, -HALF), PLATE_SIZE, PLATE_SIZE,
+    plate = Rectangle((MIN_COORD, MIN_COORD), PLATE_SIZE, PLATE_SIZE,
                       fill=False, linewidth=2)
     ax.add_patch(plate)
 
     # 2 mm edge safety area, just as visual guide
-    safe = Rectangle((-HALF + 2, -HALF + 2), PLATE_SIZE - 4, PLATE_SIZE - 4,
+    safe = Rectangle((MIN_COORD + 2, MIN_COORD + 2), PLATE_SIZE - 4, PLATE_SIZE - 4,
                      fill=False, linestyle="--", linewidth=1)
     ax.add_patch(safe)
 
@@ -129,8 +132,8 @@ def plot_sample(sample, ax):
     ax.set_title(title)
     ax.set_xlabel("x [mm]")
     ax.set_ylabel("y [mm]")
-    ax.set_xlim(-35, 35)
-    ax.set_ylim(-35, 35)
+    ax.set_xlim(MIN_COORD - 5, MAX_COORD + 5)
+    ax.set_ylim(MIN_COORD - 5, MAX_COORD + 5)
     ax.set_aspect("equal", adjustable="box")
     ax.grid(True)
 
