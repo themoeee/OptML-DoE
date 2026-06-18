@@ -386,7 +386,7 @@ def main():
     max_stress_constraint = 275.0
 
     # generates latin hypercube samples of the parameters
-    nSamples = 45
+    nSamples = 45   # Low number just for testing, for data generation I increased this by quite a lot, as many results get filtered
 
     #print("Getting config....")
     config = getConfig()

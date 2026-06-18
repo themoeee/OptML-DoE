@@ -80,7 +80,7 @@ def calculate_score(gp_energy, gp_stress, x):
     stress_thr = stress + beta2 * sigma_stress   # I started with beta = 2, but I think this is too conservative   
 
     z = (stress - MAX_STRESS) / sigma_stress
-    penalty = np.exp(-0.5 * np.maximum(z, 0)**2)
+    penalty = np.exp(-0.5 * np.maximum(z, 0)**2) #below max_stress, p=1, if 1 sigma above, p=0.6
 
    # p_safe = norm.cdf((MAX_STRESS - stress_thr) / sigma_stress)  
 
