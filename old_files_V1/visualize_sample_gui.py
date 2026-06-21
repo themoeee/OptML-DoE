@@ -62,11 +62,10 @@ def quick_checks(sample):
     messages = []
 
     # Circle-edge checks
-        if not (MIN_COORD + edge_margin + r1 <= x1 <= MAX_COORD - edge_margin - r1 and
-            MIN_COORD + edge_margin + r1 <= y1 <= MAX_COORD - edge_margin - r1):
+    if not (MIN_COORD + edge_margin + r1 <= x1 <= MAX_COORD - edge_margin - r1 and MIN_COORD + edge_margin + r1 <= y1 <= MAX_COORD - edge_margin - r1):
         messages.append("circle 1 too close to edge")
 
-        if not (MIN_COORD + edge_margin + r2 <= x2 <= MAX_COORD - edge_margin - r2 and
+    if not (MIN_COORD + edge_margin + r2 <= x2 <= MAX_COORD - edge_margin - r2 and
             MIN_COORD + edge_margin + r2 <= y2 <= MAX_COORD - edge_margin - r2):
         messages.append("circle 2 too close to edge")
 
@@ -75,7 +74,7 @@ def quick_checks(sample):
     extent_x = abs(a * math.cos(theta)) + abs(b * math.sin(theta))
     extent_y = abs(a * math.sin(theta)) + abs(b * math.cos(theta))
 
-        if not (MIN_COORD + edge_margin + extent_x <= x3 <= MAX_COORD - edge_margin - extent_x and
+    if not (MIN_COORD + edge_margin + extent_x <= x3 <= MAX_COORD - edge_margin - extent_x and
             MIN_COORD + edge_margin + extent_y <= y3 <= MAX_COORD - edge_margin - extent_y):
         messages.append("oval/slot too close to edge")
 
